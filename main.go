@@ -6,6 +6,10 @@ import (
 	"unicode"
 )
 
+const (
+	DEBUG bool = false
+)
+
 func main() {
 	args := os.Args[1:]
 	if len(args) == 0 {
@@ -20,22 +24,44 @@ func main() {
 	log.Printf("📂 File %s opened successfully", filename)
 	numBytes := len(content)
 	// count the number of lines and words in the content
-	numLines, numWords := 0, 0
+	numLines, numWords, numLettersInCurrentWord := 1, 0, 0
 	inWord := false
-	for _, rune := range string(content) {
-		if rune == '\n' {
-			numLines++
-		}
-		if unicode.IsSpace(rune) {
+	for index, rune := range string(content) {
+		if unicode.IsSpace(rune) || unicode.IsPunct(rune) || !unicode.IsLetter(rune) {
 			if inWord {
 				inWord = false // Exiting a word
+				if numLettersInCurrentWord > 1 {
+					numWords++
+				}
+				numLettersInCurrentWord = 0
 			}
 		} else {
-			if !inWord {
-				numWords++
-				inWord = true // Entering a word
+			if unicode.IsLetter(rune) && !inWord {
+				// Entering a word
+				inWord = true
+				numLettersInCurrentWord++
+			} else {
+				// Inside a word
+				numLettersInCurrentWord++
 			}
 		}
+
+		if DEBUG {
+			if unicode.IsLetter(rune) {
+				log.Printf("👍 @ byte %d, rune: \t%c \tis a Letter. inWord=%t numLettersInCurrentWord=%d \tnumWords: %d", index, rune, inWord, numLettersInCurrentWord, numWords)
+			} else {
+				log.Printf("❗ @ byte %d, rune: \t%c \tis NOT a Letter. inWord=%t numLettersInCurrentWord=%d \tnumWords: %d", index, rune, inWord, numLettersInCurrentWord, numWords)
+			}
+		}
+		if rune == '\n' {
+			if numWords != numLines*4 {
+				log.Printf("❌ At line \t%d, found \t%d words (should be %d)", numLines, numWords, numLines*4)
+			} else {
+				log.Printf("✅ At line \t%d, found \t%d words", numLines, numWords)
+			}
+			numLines++
+		}
+
 	}
 	log.Printf("📂 File num lines, words and bytes: %d\t%d\t%d", numLines, numWords, numBytes)
 
